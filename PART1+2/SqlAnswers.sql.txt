@@ -1,0 +1,56 @@
+-- Part 2 - SQL Queries
+
+-- 1. Join AMOUNTS and ACCOUNTS, return Amount and Currency for each Bank, Branch, and Account
+SELECT
+    a.BANK,
+    a.BRANCH_ID,
+    a.ACCOUNT_NUM,
+    am.AMOUNT,
+    am.CURRENCY
+FROM ACCOUNTS a
+JOIN AMOUNTS am ON a.ACCOUNT_NUM = am.ACCOUNT_NUM;
+
+------------------------------------------------------------
+
+-- 3. Top 3 customers with highest total order amounts in the last 6 months
+SELECT TOP 3
+    c.customer_id,
+    c.name,
+    SUM(o.amount) AS TotalAmount
+FROM Customers c
+JOIN Orders o ON c.customer_id = o.customer_id
+WHERE o.order_date >= DATEADD(MONTH, -6, GETDATE())
+GROUP BY c.customer_id, c.name
+ORDER BY TotalAmount DESC;
+
+------------------------------------------------------------
+
+-- 4. Customers who placed at least one order every month in the last year
+WITH Months AS (
+    SELECT DISTINCT DATEFROMPARTS(YEAR(order_date), MONTH(order_date), 1) AS MonthStart
+    FROM Orders
+    WHERE order_date >= DATEADD(YEAR, -1, GETDATE())
+),
+CustomerMonths AS (
+    SELECT
+        o.customer_id,
+        DATEFROMPARTS(YEAR(o.order_date), MONTH(o.order_date), 1) AS MonthStart
+    FROM Orders o
+    WHERE o.order_date >= DATEADD(YEAR, -1, GETDATE())
+    GROUP BY o.customer_id, DATEFROMPARTS(YEAR(o.order_date), MONTH(o.order_date), 1)
+),
+CustomerMonthlyCount AS (
+    SELECT
+        cm.customer_id,
+        COUNT(DISTINCT cm.MonthStart) AS MonthsCount
+    FROM CustomerMonths cm
+    GROUP BY cm.customer_id
+),
+TotalMonths AS (
+    SELECT COUNT(DISTINCT MonthStart) AS TotalMonthsCount FROM Months
+)
+SELECT c.customer_id, c.name
+FROM Customers c
+JOIN CustomerMonthlyCount cmc ON c.customer_id = cmc.customer_id
+CROSS JOIN TotalMonths tm
+WHERE cmc.MonthsCount = tm.TotalMonthsCount;
