@@ -4,15 +4,19 @@ using System.Threading.Tasks;
 
 namespace GitHubRepoSearchApi.Controllers
 {
+    using GitHubRepoSearchApi.BL.Interfaces;
+    using Microsoft.AspNetCore.Mvc;
+    using System.Threading.Tasks;
+
     [ApiController]
     [Route("api/[controller]")]
     public class GitHubController : ControllerBase
     {
-        private readonly HttpClient _httpClient;
+        private readonly IGitHubService _gitHubService;
 
-        public GitHubController(IHttpClientFactory httpClientFactory)
+        public GitHubController(IGitHubService gitHubService)
         {
-            _httpClient = httpClientFactory.CreateClient();
+            _gitHubService = gitHubService;
         }
 
         [HttpGet("search")]
@@ -21,19 +25,16 @@ namespace GitHubRepoSearchApi.Controllers
             if (string.IsNullOrWhiteSpace(query))
                 return BadRequest("Query cannot be empty.");
 
-            var url = $"https://api.github.com/search/repositories?q={query}";
-
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Add("User-Agent", "GitHubRepoSearchApp");
-
-            var response = await _httpClient.SendAsync(request);
-
-            if (!response.IsSuccessStatusCode)
-                return StatusCode((int)response.StatusCode, "GitHub API request failed.");
-
-            var content = await response.Content.ReadAsStringAsync();
-
-            return Content(content, "application/json");
+            try
+            {
+                var content = await _gitHubService.SearchRepositoriesAsync(query);
+                return Content(content, "application/json");
+            }
+            catch (HttpRequestException)
+            {
+                return StatusCode(503, "GitHub API request failed.");
+            }
         }
     }
+
 }

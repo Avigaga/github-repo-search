@@ -1,3 +1,6 @@
+using GitHubRepoSearchApi.BL;
+using GitHubRepoSearchApi.BL.Interfaces;
+using GitHubRepoSearchApi.BL.Services;
 using GitHubRepoSearchApi.DTOs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,9 +25,12 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddControllers();
+builder.Services.AddHttpClient<IGitHubService, GitHubService>();
 
 var app = builder.Build();
 
